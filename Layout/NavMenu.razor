@@ -1,0 +1,45 @@
+﻿@using ControlIngresoApp.Client.Services
+@inject SidebarService SidebarService
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="">
+            <img src="img/calendario.png" alt="Logo" width="32" height="32" class="me-2" />
+            <span class="fw-bold">Registro Ingresos</span>
+        </a>
+
+        <!-- SIN Bootstrap toggle -->
+        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="navbar-collapse collapse @(collapseNavMenu ? "" : "show")" id="navbarTop">
+@*             <ul class="navbar-nav mx-auto">
+<li class="nav-item">
+    <a class="nav-link" href="#" @onclick='() => SidebarService.AbrirPanel("Ingreso")'>📋Registro</a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#" @onclick='() => SidebarService.AbrirPanel("Proveedor")'>🏢 Empresas</a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link" href="#" @onclick='() => SidebarService.AbrirPanel("Empleado")'>🧑‍💼 Empleados</a>
+</li>
+            </ul> *@
+
+      @*       <div class="d-flex align-items-center">
+                <span class="text-white me-2">Hola, Aldo</span>
+                <img src="img/user.png" alt="Usuario" width="36" height="36" class="rounded-circle border border-light" />
+            </div> *@
+        </div>
+    </div>
+</nav>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

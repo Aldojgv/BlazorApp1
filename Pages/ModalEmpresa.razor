@@ -1,0 +1,57 @@
+@using System.ComponentModel.DataAnnotations
+@inject Microsoft.AspNetCore.Components.NavigationManager NavManager
+
+@if (Visible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <EditForm Model="@nuevaEmpresa" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">Nueva Empresa</h5>
+                        <button type="button" class="btn-close" @onclick="Cerrar" />
+                    </div>
+                    <div class="modal-body">
+                        <InputText class="form-control" placeholder="Nombre"
+                                   @bind-Value="nuevaEmpresa.Nombre" />
+                        <ValidationMessage For="@(() => nuevaEmpresa.Nombre)" />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="Cerrar">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public EventCallback<Empresa> OnGuardar { get; set; }
+
+    private Empresa nuevaEmpresa = new();
+
+    private async Task Guardar()
+    {
+        await OnGuardar.InvokeAsync(nuevaEmpresa);
+        nuevaEmpresa = new();
+        await VisibleChanged.InvokeAsync(false);
+    }
+
+    private async Task Cerrar()
+    {
+        nuevaEmpresa = new();
+        await VisibleChanged.InvokeAsync(false);
+    }
+
+    public class Empresa
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        public string? Nombre { get; set; }
+    }
+}

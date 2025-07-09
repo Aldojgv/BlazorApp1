@@ -1,0 +1,50 @@
+﻿@using ControlIngresoApp.Client.Services
+
+@inject SidebarService SidebarService
+@inherits LayoutComponentBase
+<NavMenu />
+
+<div class="container-fluid px-5 mt-4">
+    @Body
+</div>
+
+@if (!string.IsNullOrEmpty(panelActual))
+{
+    <div class="overlay" @onclick="CerrarPanel"></div>
+    <div class="sidebar">
+        @switch (panelActual)
+        {
+            case "Inicio":
+                <p>Contenido para Inicio</p>
+                break;
+            case "Empleado":
+        <ControlIngresoApp.Client.Pages.PanelEmpleado/>
+                break;
+            case "Ingreso":
+                   <ControlIngresoApp.Client.Pages.PanelIngreso/>
+                break;
+            case "Proveedor":
+              <ControlIngresoApp.Client.Pages.PanelEmpresa/>
+                break;
+        }
+    
+    </div>
+}
+
+@code {
+    private string? panelActual;
+
+    protected override void OnInitialized()
+    {
+        SidebarService.OnPanelRequest += MostrarPanel;
+    }
+
+      private void MostrarPanel(string panel)
+    {
+        panelActual = panel;
+        StateHasChanged();
+    }
+    void CerrarPanel() => panelActual = null;
+
+    public void Dispose() => SidebarService.OnPanelRequest -= MostrarPanel;
+}

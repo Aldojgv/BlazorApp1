@@ -1,0 +1,85 @@
+@using ControlIngresoApp.Client.Services
+@using ControlIngresoApp.Model
+@using ControlIngresoApp.Shared.DTOs
+@inject IEmpresaService EmpresaService
+
+
+<div class="modal fade" id="modalDos" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Empresa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+    
+    
+<input type="text" class="form-control input-alto mb-3"
+       placeholder="🔎 Filtrar empresas..."
+       @bind="textoBusqueda"
+       @bind:event="oninput" />
+
+@if (listaEmpresas.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>RUC</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Dirección</th>
+ 
+                </tr>
+        </thead>
+            <tbody>
+                @foreach (var emp in listaEmpresas.Where(e =>
+                (e.RUC?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) ?? false)))
+
+                {
+                    <tr>
+                        <td>@emp.RazonSocial</td>
+                        <td>@emp.RUC</td>
+                        <td>@emp.FechaRegistro.ToShortDateString()</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+@code {
+     [Inject] private IJSRuntime JS { get; set; }    
+    private bool mostrarFormulario = false;
+    private string textoBusqueda = "";
+    private EmpresaDTO nuevaEmpresa = new();
+    private List<EmpresaDTO> listaEmpresas = new();
+
+    private void GuardarEmpresa()
+    {
+        nuevaEmpresa.FechaRegistro = DateTime.Now;
+        listaEmpresas.Add(nuevaEmpresa);
+        nuevaEmpresa = new();
+        mostrarFormulario = false;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        listaEmpresas = await EmpresaService.ObtenerEmpresasAsync();
+        
+    }
+  public async Task MostrarModal()
+{
+    await JS.InvokeVoidAsync("bootstrapInterop.mostrarModal", "modalDos");
+}
+
+}

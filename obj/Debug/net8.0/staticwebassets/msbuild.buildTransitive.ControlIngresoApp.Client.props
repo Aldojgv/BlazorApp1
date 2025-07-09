@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\buildMultiTargeting\ControlIngresoApp.Client.props" />
+</Project>

@@ -1,0 +1,285 @@
+@using ControlIngresoApp.Client.Services
+@using ControlIngresoApp.Model
+@using ControlIngresoApp.Shared.DTOs
+@inject IEmpresaService EmpresaService
+@inject IPersonaService PersonaService
+@inject IParametroService ParametroService
+
+
+<button class="btn btn-primary my-3" @onclick="AgregarNuevaPersona">➕ Agregar Persona</button>
+
+@if (listaPersonas.Any())
+{
+    <div class="table-responsive mt-4">
+    <table class="table table-hover table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th></th>
+                <th>Documento</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th class="col-ancha">Empresa</th>
+                <th>Nacionalidad</th>
+                 
+                 <th>Email</th>
+                <th>Nacimiento</th>
+                <th>Ingreso</th>
+                 <th>Editar</th>
+            </tr>
+        </thead>
+        <tbody>
+         @foreach (var p in listaPersonas)
+{
+    <tr class="@(personaSeleccionada?.Id == p.Id ? "table-primary" : "")">
+        <td>
+            <input type="radio"
+                   name="seleccion"
+                   @onchange="@(() => SeleccionarPersona(p))"
+                   checked="@(personaSeleccionada?.Id == p.Id)" />
+        </td>
+
+        @if (p.Editando)
+        {
+              <td>
+                  <InputSelect @bind-Value="p.TipoDocumento" class="form-select form-select-lg">
+                    @foreach (var pti in parametrosTipoDoc)
+                    {
+                        <option value="@pti.ValorParametro">@pti.Descripcion</option>
+                    }
+                </InputSelect>
+                <InputText @bind-Value="p.Documento" class="form-control form-control-sm" />
+                </td>
+
+            <td><InputText @bind-Value="p.Nombre" class="form-control form-control-sm" /></td>
+            <td><InputText @bind-Value="p.Apellido" class="form-control form-control-sm" /></td>
+            <td>
+                <InputSelect @bind-Value="p.EmpresaId" class="form-select form-select-lg">
+                    @foreach (var emp in empresasDisponibles)
+                    {
+                        <option value="@emp.Id">@emp.RazonSocial</option>
+                    }
+                </InputSelect>
+            </td>
+            <td>
+                <InputSelect @bind-Value="p.PaisId" class="form-select form-select-lg">
+                    @foreach (var pais in paisesDisponibles)
+                    {
+                        <option value="@pais.Id">@pais.Nacionalidad</option>
+                    }
+                </InputSelect>
+            </td>
+             
+     
+            
+            <td><InputText @bind-Value="p.Email" class="form-control form-control-sm" /></td>
+            <td><InputDate @bind-Value="p.FechaNacimiento" class="form-control form-control-sm" /></td>
+            <td><InputDate @bind-Value="p.FechaIngreso" class="form-control form-control-sm" /></td>
+            <td>
+                <button class="btn btn-success btn-sm me-1" @onclick="() => GuardarEdicion(p)">💾</button>
+                <button class="btn btn-secondary btn-sm" @onclick="() => CancelarEdicion(p)">✖</button>
+            </td>
+        }
+        else
+        {
+            <td>@p.TipoDocumentoDescripcion - @p.Documento</td>
+            <td>@p.Nombre</td>
+            <td>@p.Apellido</td>
+            <td>@empresasDisponibles.FirstOrDefault(e => e.Id == p.EmpresaId)?.RazonSocial</td>
+            <td>@p.Nacionalidad</td>
+         
+
+            <td>@p.Email</td>
+            <td>@p.FechaNacimiento.ToShortDateString()</td>
+            <td>@p.FechaIngreso.ToShortDateString()</td>
+            <td>
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => EditarFila(p)">✏️</button>
+            </td>
+        }
+    </tr>
+}
+
+        </tbody>
+    </table>
+</div>
+}
+
+@code {
+ 
+ [Inject] private IJSRuntime JS { get; set; }    
+    private PersonaDTO personaSeleccionada = new();
+    private bool mostrarPanelAgregar = false;
+    private PersonaDTO nuevaPersona = new();
+    private List<PersonaDTO> listaPersonas = new();
+    private List<EmpresaDTO> empresasDisponibles = new();
+    [Parameter] public EventCallback<PersonaDTO> OnPersonaSeleccionada { get; set; }
+
+    [Parameter] public string textoBusqueda { get; set; } = string.Empty;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await ObtenerEmpresasAsync();
+        await ObtenerPaisesAsync();
+        await ObtenerParametrosAsync();
+
+        if (empresasDisponibles.Any())
+        {
+            nuevaPersona.EmpresaId = empresasDisponibles.First().Id;
+        }
+    }
+    
+private string textoBusquedaAnterior = "";
+ protected override async Task OnParametersSetAsync()
+{
+    if (textoBusqueda != textoBusquedaAnterior)
+    {
+        textoBusquedaAnterior = textoBusqueda;
+        personaSeleccionada = null;
+
+        if (!string.IsNullOrWhiteSpace(textoBusqueda))
+        {
+  await BuscarPersonasAsync(
+                documento: textoBusqueda,
+                nombre: textoBusqueda,
+                apellido: textoBusqueda);
+        }
+        else
+        {
+            listaPersonas.Clear();
+        }
+    }
+}
+    private async Task BuscarPersonasAsync(string documento, string nombre, string apellido)
+    {
+        listaPersonas = await PersonaService.ObtenerPersonasByDocumentoNombreApellidoAsync(documento, nombre, apellido);
+    }
+
+    private async Task ObtenerEmpresasAsync()
+    {
+        empresasDisponibles = await EmpresaService.ObtenerEmpresasAsync();
+    }
+    
+    private List<PaisDTO> paisesDisponibles = new();
+    private List<ParametroDTO> parametrosTipoDoc = new(); 
+    private List<ParametroDTO> parametrosTipoVisita = new();
+    private List<ParametroDTO> parametrosEstado = new();   
+    private async  Task ObtenerPaisesAsync()
+    {
+       paisesDisponibles = await ParametroService.ObtenerPaisesAsync();
+        // Aquí podrías hacer algo con la lista de países si es necesario
+    }
+    private async Task ObtenerParametrosAsync()
+    {
+        parametrosTipoDoc = await ParametroService.ObtenerValorParametroAsync("002-TipoDoc");
+        parametrosTipoVisita = await ParametroService.ObtenerValorParametroAsync("004-TipoVisita");
+        parametrosEstado = await ParametroService.ObtenerValorParametroAsync("003-Estado");
+    }
+ private void AgregarNuevaPersona()
+{
+    nuevaPersona = new PersonaDTO
+    {
+        Id = 0, // Asignar un ID temporal o dejar que el backend lo maneje
+        Nombre = string.Empty,
+        Apellido = string.Empty,
+        EmpresaId = empresasDisponibles.FirstOrDefault()?.Id ?? 0, // Asign
+        PaisId = paisesDisponibles.FirstOrDefault()?.Id ?? 0, // Asignar el primer país disponible
+        TipoDocumento = int.Parse( parametrosTipoDoc.FirstOrDefault()?.ValorParametro.ToString() ?? "0"), // Asignar el primer tipo de documento disponible
+    
+        Documento = string.Empty,
+        Email = string.Empty,
+        Telefono = string.Empty,
+        Observaciones = string.Empty,
+        FechaNacimiento = DateTime.Today,
+        FechaIngreso = DateTime.Today,
+            Editando = true,
+        // Puedes setear valores por defecto si quieres
+    };
+
+    listaPersonas.Insert(0, nuevaPersona);
+    personaSeleccionada=nuevaPersona; // Insertar al inicio o al final, como prefieras
+}
+    private void GuardarPersona()
+    {
+  
+        mostrarPanelAgregar = false;
+    }
+    private bool modalAbierto = false;
+
+    private void SeleccionarPersona(PersonaDTO persona)
+    {
+        personaSeleccionada = persona;
+         _ = OnPersonaSeleccionada.InvokeAsync(personaSeleccionada);
+         
+    }
+public async Task MostrarModal()
+{
+    await JS.InvokeVoidAsync("bootstrapInterop.mostrarModal", "modalUno");
+}
+
+
+
+private void EditarFila(PersonaDTO persona)
+{
+    // Si deseas que solo una fila esté en edición:
+
+
+foreach (var p in listaPersonas)
+{
+    if (p.Id != persona.Id)
+    {
+        p.Editando = false; 
+        if (p.Id==0) listaPersonas.Remove(p); // Cerrar edición de otras filas
+    }
+  
+}
+    persona.Editando = true; // Habilitar edición para la fila seleccionada
+    personaSeleccionada = persona; // Actualizar la persona seleccionada
+ 
+}
+private async Task CrearPersonaAsync()
+{
+    var crearPersonaDTO = new PersonaCreateDTO
+    {
+        Documento = nuevaPersona.Documento,
+        EmpresaId = nuevaPersona.EmpresaId,
+        Telefono = nuevaPersona.Telefono,
+        Email = nuevaPersona.Email,
+        Cargo = nuevaPersona.Cargo,
+        FechaNacimiento = nuevaPersona.FechaNacimiento.ToString("yyyy-MM-dd"),
+        FechaIngreso = nuevaPersona.FechaIngreso.ToString("yyyy-MM-dd"),
+        TipoDocumento = nuevaPersona.TipoDocumento,
+        Observaciones = nuevaPersona.Observaciones
+    };
+    var crear= await PersonaService.CrearPersonaAsync(crearPersonaDTO);
+}   
+private async Task GuardarEdicion(PersonaDTO persona)
+{
+    var actualizarPersonaDTO = new PersonaUpdateDTO
+    {
+        Id = persona.Id,
+        Nombre = persona.Nombre,
+        Apellido = persona.Apellido,
+        EmpresaId = persona.EmpresaId,
+        PaisId = persona.PaisId,
+        TipoDocumento = persona.TipoDocumento,
+        Documento = persona.Documento,
+        Email = persona.Email,
+        FechaNacimiento = persona.FechaNacimiento.ToString("yyyy-MM-dd"),
+        FechaIngreso = persona.FechaIngreso.ToString("yyyy-MM-dd"),
+        Observaciones = persona.Observaciones
+    };
+    var resultado = await PersonaService.ActualizarPersonaAsync(actualizarPersonaDTO);
+ 
+    
+    persona.Editando = false;
+}
+
+private void CancelarEdicion(PersonaDTO persona)
+{
+    // Si no quieres guardar cambios, puedes recargar la persona desde la fuente original
+     listaPersonas.RemoveAll(p=> p.Id == 0);
+      persona.Editando = false;
+
+}
+
+
+}

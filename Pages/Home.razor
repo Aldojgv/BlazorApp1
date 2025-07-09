@@ -1,0 +1,267 @@
+﻿@page "/"
+@inject SidebarService SidebarService
+
+@implements IDisposable
+@using System.Timers
+
+@using ControlIngresoApp.Client.Services
+@using ControlIngresoApp.Model
+@using ControlIngresoApp.Shared.DTOs
+@inject IRegistroService registroService
+
+@inject IParametroService ParametroService
+<PageTitle>Inicio</PageTitle>
+<div class="container-fluid px-5 py-5">
+    @if (!mostrarFormulario)
+    {
+        <h5 class="text-center text-secondary">
+            👋 Bienvenidos - Registrar Ingreso
+        </h5>
+        <div class="d-flex justify-content-center mt-3">
+            <button class="btn btn-dark px-4" @onclick="MostrarFormulario">Iniciar</button>
+        </div>
+        <br />
+    }
+    else
+    {
+       <!-- Pantalla principal con barra lateral -->
+    <div class="d-flex">
+        <!-- ⭐ Barra lateral -->
+        <div class="sidebar bg-light p-3">
+            <button class="btn btn-outline-dark w-100 mb-2 text-start" @onclick="MostrarModalEmpleado">
+                <i class="bi bi-person-plus-fill me-2"></i> <span class="d-none d-md-inline"><i class="bi bi-person-fill text-danger">👤</i> Proveedor</span>
+            </button>
+            <button class="btn btn-outline-dark w-100 text-start" @onclick="MostrarModalEmpresa">
+                <i class="bi bi-building-add me-2"></i> <span class="d-none d-md-inline">🏢 Empresa</span>
+            </button>
+        </div>
+
+        <!-- 📋 Contenido principal -->
+        <div class="flex-grow-1 px-4">
+            <div class="d-flex align-items-center flex-wrap gap-3 mb-3">
+                @* Fecha *@
+                @if (editandoFecha)
+                {
+                    <InputDate @bind-Value="fechaActual"
+                               class="form-control form-control-sm text-center"
+                               @onblur="@(() => editandoFecha = false)" 
+                               style="width: 120px;" />
+                }
+                else
+                {
+                    <span class="text-primary fw-semibold"
+                          style="cursor: pointer;"
+                          @onclick="@(() => editandoFecha = true)">
+                        📅 @fechaActual.ToString("dd/MM/yyyy")
+                    </span>
+                }
+
+                @* Hora *@
+                @if (editandoHora)
+                {
+                    <input type="time"
+                           class="form-control form-control-sm text-center"
+                           @bind="horaActual"
+                           @onblur="@(() => editandoHora = false)"
+                           style="width: 100px;" />
+                }
+                else
+                {
+                    <span class="text-primary fw-semibold"
+                          style="cursor: pointer;"
+                          @onclick="@(() => editandoHora = true)">
+                        ⏰ @horaActualStr
+                    </span>
+                }
+
+                @* Buscar persona *@
+                <input @bind-value="textoBusqueda"
+                       @bind-value:event="oninput"
+                       @ref="inputRef"
+                       @onfocus="LimpiarPersona"
+                       type="text"
+                       class="form-control form-control-sm text-center"
+                       @onkeydown="BuscarPersonasAsync"
+                       placeholder="Buscar persona..."
+                       style="width: 300px;" />
+
+                <button class="btn btn-success btn-lg" @onclick="ProcesarIngreso">
+                    Registrar ingreso
+                </button>
+            </div>
+
+            <!-- Paneles -->
+            <div class="row g-3">
+                <PanelEmpresa @ref="PanelEmpresaRef" />
+
+                @if (!string.IsNullOrWhiteSpace(textoBusqueda))
+                {
+                 <PanelEmpleado @ref="PanelEmpleadoRef" textoBusqueda="@textoBusquedaEnv" OnPersonaSeleccionada="RecibirSeleccion" />
+
+                }
+                else
+                {
+                 <PanelEmpleado @ref="PanelEmpleadoRef" OnPersonaSeleccionada="RecibirSeleccion" />
+
+                }
+            </div>
+
+            <PanelIngreso @ref="IngresoRef" />
+        </div>
+    </div>
+    }
+   
+
+</div>
+
+
+
+@code {
+[Inject] private IJSRuntime JS { get; set; }    
+private PanelIngreso IngresoRef;
+private PanelEmpresa PanelEmpresaRef;
+private PanelEmpleado PanelEmpleadoRef;
+
+private DateTime horaActual = DateTime.Now; 
+    private Timer? reloj;
+    private string textoBusqueda = string.Empty;
+    private string textoBusquedaEnv =string.Empty;
+    private bool mostrarFormulario = false;
+    private bool editandoFecha = false;
+    private bool editandoHora = false;
+    private PersonaDTO Seleccionada { get; set; } = new();
+
+    private RegistroCreateDTO registroCreateDTO = new();
+    private DateTime fechaActual = DateTime.Now;
+    private List<RegistroDTO> listaRegistros = new();
+  private string horaActualStr
+    {
+        get => horaActual.ToString(@"hh\:mm\:ss");
+        set
+        {
+            if (DateTime.TryParse(value, out var parsed))
+                horaActual = parsed;
+        }
+    }
+private async Task MostrarModal(string id)
+{
+    await JS.InvokeVoidAsync("bootstrapInterop.mostrarModal", id);
+}
+private void RecibirSeleccion(PersonaDTO persona)
+{
+    Seleccionada = persona;
+    
+}
+private void BuscarPersonasAsync(KeyboardEventArgs e)
+{
+    if (e.Key != "Enter") return;
+    
+    textoBusquedaEnv = textoBusqueda;
+}   
+private List<PersonaDTO> personasRegistradas = new();
+    
+private ElementReference inputRef;
+private bool mostrarBoton = true;
+protected override async Task OnAfterRenderAsync(bool firstRender)
+{
+    if (firstRender && mostrarFormulario)
+    {
+        await inputRef.FocusAsync();
+    }
+}
+protected override async Task OnInitializedAsync()
+    {
+      reloj = new Timer(1000);
+        reloj.Elapsed += (s, e) =>
+        {
+            horaActual = DateTime.Now;
+            InvokeAsync(StateHasChanged);
+        };
+        reloj.Start();
+
+    }
+private async Task MostrarModalEmpleado(){
+   await PanelEmpleadoRef.MostrarModal();
+}
+
+private async Task MostrarModalEmpresa(){
+   await PanelEmpresaRef.MostrarModal();
+}
+private List<ParametroDTO> parametrosTipoVisita = new();
+private List<ParametroDTO> parametrosEstado = new();
+     private async Task ObtenerParametrosAsync()
+    {
+       
+        parametrosTipoVisita = await ParametroService.ObtenerValorParametroAsync("004-TipoVisita");
+ 
+    }
+
+private void MostrarFormulario(){
+    mostrarFormulario = true;
+    mostrarBoton = false;
+    
+}  
+private async Task ProcesarIngreso()
+{
+   
+ if (Seleccionada!=null)
+    {
+         AsignarDatosRegistro(Seleccionada);
+        int resultado = await registroService.CrearRegistroAsync(registroCreateDTO);
+        if (resultado > 0)
+        {
+            Console.WriteLine("Registro creado exitosamente.");
+            await IngresoRef.CargarDatos();
+            Console.WriteLine("Registro Cargado.");
+            LimpiarPersona();
+            Seleccionada = new PersonaDTO(); // Limpiar la selección
+            textoBusqueda = string.Empty; // Limpiar el campo de búsqueda
+            textoBusquedaEnv = string.Empty; // Limpiar el campo de búsqueda para el panel
+        }
+        else
+        {
+            Console.WriteLine("Error al crear el registro.");
+        }
+
+    }
+    else
+    {
+        registroCreateDTO = new RegistroCreateDTO();
+        Console.WriteLine("No hay persona seleccionada.");
+    }
+    
+    
+}
+private void AsignarDatosRegistro(PersonaDTO persona)
+{
+    registroCreateDTO.PersonaId = persona.Id;
+    registroCreateDTO.FechaIngreso = fechaActual.ToString("yyyy-MM-dd");
+    registroCreateDTO.HoraIngreso = horaActual.ToString($"hh:mm:ss");
+    registroCreateDTO.EmpresaId = persona.EmpresaId;
+ 
+    
+    Console.WriteLine($"Persona seleccionada en home: {persona.Nombre}");
+
+    }
+
+    
+    public void Dispose()
+    {
+        if (reloj != null)
+        {
+            reloj.Stop();
+            reloj.Dispose();
+        }
+    }
+
+
+private void LimpiarPersona()
+{
+    textoBusqueda = string.Empty;
+        mostrarBoton = true;
+
+}    
+
+
+}
+

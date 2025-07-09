@@ -1,0 +1,160 @@
+@using ControlIngresoApp.Model
+@using ControlIngresoApp.Shared.DTOs
+@using ControlIngresoApp.Client.Services
+@inject IPersonaService PersonaService
+@inject IRegistroService RegistroService
+@inject IParametroService ParametroService
+
+<h5 class="mb-3">📋 Registros recientes</h5>
+
+<div class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input type="date"
+               class="form-control"
+               @bind="fechaConsulta" />
+    </div>
+    <div class="col-md-6">
+        <input type="text"
+               class="form-control"
+               placeholder="🔍 Buscar por nombre, apellido, documento o empresa"
+               @bind="filtroBusqueda"
+               @bind:event="oninput" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100" @onclick="CargarRegistrosPorFecha">🔄 Buscar</button>
+    </div>
+</div>
+
+@if (listaRegistros.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover table-bordered align-middle">
+            <thead class="table-info">
+                <tr>
+                    <th>Persona</th>
+                    <th>Fecha</th>
+                    <th>Hora Ingreso</th>
+                    <th>Hora Salida</th>
+                    <th>Tipo Visita</th>
+                    <th>Observaciones</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+@foreach (var reg in listaRegistros.Where(reg => 
+    string.IsNullOrEmpty(filtroBusqueda) || 
+    reg.Nombre.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) || 
+    reg.Apellido.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) || 
+    reg.Documento.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) || 
+    reg.RazonSocial.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase)))
+{
+    
+    <tr class="@(reg.Estado != 9 ? "table-danger" : "")">
+        <td>
+            @if (reg.PersonaId != 0)
+            {
+                <div><strong>@reg.TipoDocumentoDescripcion: @reg.Documento</strong></div>
+                <div>@reg.Apellido @reg.Nombre</div>
+                <div>@reg.Nacionalidad</div>
+                <div>@reg.RazonSocial</div>
+ 
+            }
+            else
+            {
+                <div class="text-danger fst-italic">⚠ Persona no encontrada</div>
+            }
+        </td>
+        <td>
+            <input type="date"
+                   class="form-control form-control-sm"
+                   @bind="reg.FechaIngreso" />
+        </td>
+        <td>
+            <input type="time"
+                   class="form-control form-control-sm"
+                   @bind="reg.HoraIngreso" />
+        </td>
+        <td>
+            <input type="time"
+                   class="form-control form-control-sm"
+                   @bind="reg.HoraSalida" />
+        </td>
+        <td>
+              <InputSelect @bind-Value="reg.TipoVisita" class="form-select form-select-lg">
+                        @foreach (var pti in parametrosTipoVisita)
+                    {
+                        <option value="@pti.ValorParametro">@pti.Descripcion</option>
+                    }
+                </InputSelect>
+        </td>
+        <td>
+            <textarea class="form-control form-control-sm ancho-grande"
+                      rows="1"
+                      @bind="reg.Observaciones" />
+        </td>
+        <td>@(reg.Estado == 9 ? "✅" : "🛑")</td>
+        <td>
+            <button class="btn btn-sm btn-primary me-1"
+                    @onclick="@(() => GuardarRegistro(reg))">💾</button>
+            <button class="btn btn-sm btn-outline-danger"
+                    @onclick="@(() => ActivarRegistro(reg))">🗑</button>
+        </td>
+    </tr>
+}
+</tbody>
+
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted fst-italic">No hay registros para la fecha seleccionada.</p>
+}
+
+@code {
+   
+    [Parameter] public PersonaDTO PersonaSeleccionada { get; set; } = new();
+    private string filtroBusqueda = string.Empty;
+    private List<RegistroDTO> listaRegistros = new();
+    private List<Empresa> empresas = new();
+    private List<Persona> personasDisponibles = new();
+    private DateTime fechaConsulta = DateTime.Today;
+    
+    protected override async Task OnInitializedAsync()
+    {
+
+        await CargarRegistrosPorFecha();
+        await ObtenerParametrosAsync();
+    }
+    public async Task CargarDatos(){
+        await CargarRegistrosPorFecha();
+      } 
+    private async Task CargarRegistrosPorFecha()
+    {
+        var fechaStr = fechaConsulta.ToString("yyyy-MM-dd");
+        listaRegistros = await RegistroService.ObtenerRegistrosByFechaAsync(fechaStr);
+         StateHasChanged();
+    }
+    private List<ParametroDTO> parametrosTipoVisita = new List<ParametroDTO>();
+
+    private async Task ObtenerParametrosAsync()
+    {
+        parametrosTipoVisita = await ParametroService.ObtenerValorParametroAsync("004-TipoVisita");
+    }
+
+  
+    private void GuardarRegistro(RegistroDTO reg)
+    {
+      
+        Console.WriteLine($"Guardado: {reg.PersonaId} - {reg.FechaIngreso}");
+
+    }
+
+
+    private void ActivarRegistro(RegistroDTO reg)
+    {
+        reg.Estado = reg.Estado == 9 ? 8 : 9;
+        reg.EstadoDescripcion = reg.Estado == 9 ? "Activo" : "Inactivo";
+    }
+}
