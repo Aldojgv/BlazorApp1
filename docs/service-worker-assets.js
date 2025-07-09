@@ -1,5 +1,5 @@
 self.assetsManifest = {
-  "version": "ACTkf4o5",
+  "version": "XY62hGmu",
   "assets": [
     {
       "hash": "sha256-C5tWsjouXpMiHU8radm0vL/MTWNAGBHklLtDPw1QYkY=",
@@ -18,15 +18,15 @@ self.assetsManifest = {
       "url": "_framework/Blazored.Typeahead.wasm"
     },
     {
-      "hash": "sha256-wRRi/pGXkQBVspwK9BHMfGV+CH4UoSGLJJ2V7N7uFQo=",
+      "hash": "sha256-Svj1/BMa27WnIjc0aUJSFoVTLzTyzpmbYoAMVPNyqrw=",
       "url": "_framework/ControlIngresoApp.Client.wasm"
     },
     {
-      "hash": "sha256-FCV8uJeHTVq2NlQcZwQvhHHtYz560QdcS1EP85M3sR0=",
+      "hash": "sha256-Pvd/cvGeWkIZoAgA9B6CLDfsBmXVNpGeHbgq4NiK/mU=",
       "url": "_framework/ControlIngresoApp.Model.wasm"
     },
     {
-      "hash": "sha256-RSVaZpPCR9EUcMK9g0SrLgxnQsp6Pki9XTdQLjdzkZs=",
+      "hash": "sha256-uYJmgHMWNRU1/9ebkVa1yfhh1QWk/cOZoB3GBAZ7PoM=",
       "url": "_framework/ControlIngresoApp.Shared.wasm"
     },
     {
@@ -198,7 +198,7 @@ self.assetsManifest = {
       "url": "_framework/System.wasm"
     },
     {
-      "hash": "sha256-LGwlAAZYtKanRWNRIl44aC1IOZsNZomegKHw8yDH/P0=",
+      "hash": "sha256-9mndM8o46BaLwsBXT52XBwmH69qndqv16/V22LCV+cw=",
       "url": "_framework/blazor.boot.json"
     },
     {
@@ -270,7 +270,7 @@ self.assetsManifest = {
       "url": "img/user.png"
     },
     {
-      "hash": "sha256-goomiF3B5ikB4FrkHoLr9pTJPyerhQTHkSQNHQOFfm8=",
+      "hash": "sha256-enaVJzcIwuXyBqxk7JB7ogq3jbXrTxC+mg41vfSuHGA=",
       "url": "index.html"
     },
     {
